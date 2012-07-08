@@ -21,18 +21,18 @@ body {
 
 (defn get-filename
   "Given a prefix, return a filename appended with the current time in
-  millisecond" [filename-prefix]
+  millisecond" [filename-prefix extension]
   (.getAbsolutePath
    (clojure.java.io/file
     (str filename-prefix "-"
          (.getTimeInMillis (Calendar/getInstance))
-         ".html"))))
+         extension))))
 
 
 (defn export-to-html
   "Export the db into an hidden field in an html page, ready to be
 transfered to a webserver."
-  [filename db]
+  [db]
   (let [number-of-devices (count (:data db))]
     (html5
      [:head
@@ -54,8 +54,18 @@ transfered to a webserver."
        [:p "No Internet connection right now? Don't worry! Simply copy this html file and bring it wherever you can reach the Internet. You can see the current location of this file by looking at your browser's address bar." ]]])))
 
 (defn spit-to-html
-  "Save the data to an html file. Return the complete file path."
+  "Save the data to an html file. Return the complete file path.
+  Return the final filename."
   [filename-prefix data]
-  (let [filename (get-filename filename-prefix)]  
-    (spit filename (export-to-html filename data))
+  (let [filename (get-filename filename-prefix ".html")]  
+    (spit filename (export-to-html data))
     filename))
+
+(defn spit-to-log
+  "Save the data in a log file, usually to send it to a server later.
+  Return the final filename."
+  [filename-prefix data]
+  (let [filename (get-filename filename-prefix ".log")]  
+    (spit filename data))
+    filename)
+  

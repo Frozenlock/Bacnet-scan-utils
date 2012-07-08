@@ -409,8 +409,7 @@ java method `terminate'."
   [remote-devices & {:keys [get-trend-log get-backup password]}]
   (let [rds remote-devices
         seq-oids (map #(get-object-identifiers %) rds)] ;delay needed?
-    {:scanner-version (get-scanner-version)
-     :data
+    {:data
      (into {} (map (fn [rd oids]
                      (let [prop-refs (get-properties-references rd oids)
                            objects (get-properties-values-for-remote-device
