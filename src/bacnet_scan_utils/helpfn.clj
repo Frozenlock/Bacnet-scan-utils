@@ -4,10 +4,6 @@
 (import 'java.net.InetSocketAddress)
 (import java.net.InetAddress java.net.Inet4Address)
 
-(defmacro get-scanner-version []
-  (let [x# (System/getProperty "bacnet-scan-utils.version")]
-    `~x#))
-
 (defn get-ip
   "Return the first IPv4 address which IS NOT the localhost (\"127.0.0.1\")"
   []
