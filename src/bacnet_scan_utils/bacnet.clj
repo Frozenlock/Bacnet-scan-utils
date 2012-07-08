@@ -1,4 +1,4 @@
-(ns bacnet-scan.bacnet
+(ns bacnet-scan-utils.bacnet
   (:use [hiccup.form :as form]
         [bacnet-scan-utils.helpfn]
         [clj-time.core :only (now)]

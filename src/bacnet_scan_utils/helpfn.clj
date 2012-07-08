@@ -5,7 +5,7 @@
 (import java.net.InetAddress java.net.Inet4Address)
 
 (defmacro get-scanner-version []
-  (let [x# (System/getProperty "Bacnet-scan-utils.version")]
+  (let [x# (System/getProperty "bacnet-scan-utils.version")]
     `~x#))
 
 (defn get-ip

@@ -1,4 +1,4 @@
-(ns bacnet-scan.export
+(ns bacnet-scan-utils.export
   (:require [hiccup.form :as form])
   (:use [hiccup.page :only (html5)]
         [gzip64.core]))
