@@ -1,11 +1,11 @@
-(ns bacnet-scan.helpfn
+(ns bacnet-scan-utils.helpfn
   (:use [clojure.string :only (split join)]))
 
 (import 'java.net.InetSocketAddress)
 (import java.net.InetAddress java.net.Inet4Address)
 
 (defmacro get-scanner-version []
-  (let [x# (System/getProperty "bacnet-scan.version")]
+  (let [x# (System/getProperty "Bacnet-scan-utils.version")]
     `~x#))
 
 (defn get-ip
