@@ -66,6 +66,6 @@ transfered to a webserver."
   Return the final filename."
   [filename-prefix data]
   (let [filename (get-filename filename-prefix ".log")]  
-    (spit filename data))
-    filename)
+    (spit filename data)
+    filename))
   
