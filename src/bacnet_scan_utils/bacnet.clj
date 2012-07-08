@@ -1,7 +1,6 @@
 (ns bacnet-scan.bacnet
   (:use [hiccup.form :as form]
-        [bacnet-scan.export :as exp]
-        [bacnet-scan.helpfn]
+        [bacnet-scan-utils.helpfn]
         [clj-time.core :only (now)]
         [clojure.data.codec.base64 :as b64])
   (:require [clojure.repl]))
