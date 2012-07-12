@@ -80,7 +80,7 @@
             :28 "Load control"
             :29 "Structured view"
             :30 "Access door"} key-number)
-      (str "Unknown/Vendor Specific (" (name key-number) ")")))
+      (str "Vendor Specific (" (name key-number) ")")))
 
 (defn prop-ID-by-object-type
   "Return a sequence of property identifiers for a given object

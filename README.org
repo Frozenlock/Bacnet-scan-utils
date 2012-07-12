@@ -3,6 +3,9 @@
   Basic library to scan a BACnet network and save the results.
   BACnet/IP only!
   
+  You can get an example on how to use by looking over the [[https://github.com/Frozenlock/Bacnet-scan][BACnet-scan]]
+  application.
+
   Build with BACnet4j library.
 
 * License
