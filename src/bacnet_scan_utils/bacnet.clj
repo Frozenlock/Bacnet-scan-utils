@@ -86,11 +86,15 @@
   "Return a sequence of property identifiers for a given object
   integer. This is not EVERY properties, but the most useful."
   [object-int]
-  (let [normal-IO-pids [PropertyIdentifier/objectName 
-                        PropertyIdentifier/description
-                        PropertyIdentifier/presentValue
-                        PropertyIdentifier/units
-                        PropertyIdentifier/outOfService]
+  (let [normal-analog-IO-pids [PropertyIdentifier/objectName 
+                               PropertyIdentifier/description
+                               PropertyIdentifier/presentValue
+                               PropertyIdentifier/units
+                               PropertyIdentifier/outOfService]
+        normal-binary-IO-pids [PropertyIdentifier/objectName 
+                               PropertyIdentifier/description
+                               PropertyIdentifier/presentValue
+                               PropertyIdentifier/outOfService]
         normal-variable-pids [PropertyIdentifier/objectName 
                               PropertyIdentifier/description
                               PropertyIdentifier/presentValue]
@@ -99,11 +103,11 @@
                       PropertyIdentifier/presentValue]]
     (or
      ((keyword (str object-int))
-      {:0 normal-IO-pids ;analog-input
-       :1 normal-IO-pids ;analog-ouput
+      {:0 normal-analog-IO-pids ;analog-input
+       :1 normal-analog-IO-pids ;analog-ouput
        :2 normal-variable-pids ;analog-value
-       :3 normal-IO-pids ;binary-input
-       :4 normal-IO-pids ;binary-output
+       :3 normal-binary-IO-pids ;binary-input
+       :4 normal-binary-IO-pids ;binary-output
        :5 normal-variable-pids ;binary-value
        :8 [PropertyIdentifier/objectName ;device 
            PropertyIdentifier/description
@@ -116,8 +120,8 @@
             PropertyIdentifier/fileAccessMethod
             PropertyIdentifier/fileSize
             PropertyIdentifier/fileType]
-       :13 normal-IO-pids ;multi-state-input
-       :14 normal-IO-pids ;multi-state-output   
+       :13 normal-binary-IO-pids ;multi-state-input
+       :14 normal-binary-IO-pids ;multi-state-output   
        :19 normal-variable-pids ;multi-state-value    
        :16 [PropertyIdentifier/objectName ;program
             PropertyIdentifier/description
@@ -133,11 +137,11 @@
             PropertyIdentifier/listOfObjectPropertyReferences]
        :20 [PropertyIdentifier/objectName
             PropertyIdentifier/description
-            PropertyIdentifier/logBuffer ;tend-log
-            PropertyIdentifier/logDeviceObjectProperty 
-            PropertyIdentifier/loggingObject 
-            PropertyIdentifier/loggingRecord 
-            PropertyIdentifier/loggingType 
+            ;PropertyIdentifier/logBuffer ;trend-log
+            ;PropertyIdentifier/logDeviceObjectProperty 
+            ;PropertyIdentifier/loggingObject 
+            ;PropertyIdentifier/loggingRecord 
+            ;PropertyIdentifier/loggingType 
             PropertyIdentifier/logInterval]})
      normal-variable-pids)))
 
@@ -206,23 +210,30 @@ java method `terminate'."
   [bac4j-object]
   (let [object-class (class bac4j-object)]
     (cond (= object-class com.serotonin.bacnet4j.type.primitive.Real)
-          (.floatValue bac4j-object)          
+          (.floatValue bac4j-object)
+          
           (= object-class com.serotonin.bacnet4j.type.primitive.CharacterString)
           (.toString bac4j-object)
+          
           (= object-class com.serotonin.bacnet4j.type.primitive.Boolean)
           (if (.booleanValue bac4j-object) "true" "false")
+          
           (or (= object-class com.serotonin.bacnet4j.type.primitive.Time)
               (= object-class com.serotonin.bacnet4j.type.primitive.Date)
               (= object-class com.serotonin.bacnet4j.type.enumerated.EngineeringUnits)
-              (= object-class com.serotonin.bacnet4j.type.enumerated.FileAccessMethod))
+              (= object-class com.serotonin.bacnet4j.type.enumerated.FileAccessMethod)
+              (= object-class com.serotonin.bacnet4j.type.enumerated.LifeSafetyState)
+              (= object-class com.serotonin.bacnet4j.type.enumerated.ShedState)
+              (= object-class com.serotonin.bacnet4j.type.primitive.ObjectIdentifier))
           (.toString bac4j-object)
+          
           (or (= object-class com.serotonin.bacnet4j.type.primitive.UnsignedInteger)
               (= object-class com.serotonin.bacnet4j.type.primitive.Unsigned8)
               (= object-class com.serotonin.bacnet4j.type.primitive.Unsigned16)
-              (= object-class com.serotonin.bacnet4j.type.primitive.Unsigned32))
+              (= object-class com.serotonin.bacnet4j.type.primitive.Unsigned32)
+              (= object-class com.serotonin.bacnet4j.type.enumerated.BinaryPV))
           (.intValue bac4j-object)
-          (= object-class com.serotonin.bacnet4j.type.primitive.ObjectIdentifier)
-          (.toString bac4j-object)
+          
           true nil)))
 
 (defn get-remote-devices-and-info
