@@ -19,14 +19,19 @@ body {
 </style>
 ")
 
+(defn get-running-directory-path []
+  (.getParent
+   (clojure.java.io/file
+    (-> clojure.lang.Atom (.getProtectionDomain) (.getCodeSource) (.getLocation)))))
+
+
 (defn get-filename
   "Given a prefix, return a filename appended with the current time in
   millisecond" [filename-prefix extension]
-  (.getAbsolutePath
-   (clojure.java.io/file
-    (str filename-prefix "-"
-         (.getTimeInMillis (Calendar/getInstance))
-         extension))))
+  (str (get-running-directory-path) "/"
+       filename-prefix "-"
+       (.getTimeInMillis (Calendar/getInstance))
+       extension))
 
 
 (defn export-to-html
