@@ -146,6 +146,84 @@
      normal-variable-pids)))
 
 
+
+
+
+;; ================================================================
+;;                     filtering out devices
+;; ================================================================
+
+;; In order to minimize the impact on the network, the first step
+;; should be to use the min/max paramater to give a range of ID to the
+;; WhoIs broadcast.
+
+;; Second step is to filter out unwanted devices by their ID. They
+;; will still respond to the WhoIs, but at least we don't query them
+;; for their properties.
+
+(defn remove-devices-by-id
+  "Remove every remote devices based on their device-id"
+  [remote-devices id-to-remove-coll]
+  (remove (fn [a] (some #(= % (.getInstanceNumber a)) id-to-remove-coll)) remote-devices))
+
+(defn keep-devices-by-id
+  "Keep only the remote devices with a device-id present in id-to-keep-coll"
+  [remote-devices id-to-keep-coll]
+  (filter (fn [a] (some #(= % (.getInstanceNumber a)) id-to-keep-coll)) remote-devices))
+
+
+(defn remove-or-keep-devices-by-id
+  "If id-to-keep is non-nil, will ONLY keep the devices with the
+  specified IDs. Otherwise, use the id-to-remove."
+  [remote-devices &{:keys [id-to-remove id-to-keep]}]
+  (if id-to-keep
+    (keep-devices-by-id remote-devices id-to-keep)
+    (remove-devices-by-id remote-devices id-to-remove)))
+
+;; Third and final step has no advantage for the network, but rather
+;; on the exported data. Filter devices by their properties. For
+;; example, ignore all model "DNT-T221" (thermostat) from Delta
+;; Controls.
+
+(defn where
+  "Use with `filter'"
+  [criteria]
+    (fn [m]
+      (every? (fn [[k v]] (= (k m) v)) criteria)))
+
+
+(defn property-match?
+  "Return true if the device property is equal to the given value.
+  Filter-properties shall be in the format:
+ {<property-key> <value>}."
+  [device-db filter-properties]
+  (let [device-id (key device-db)
+        current-properties (get-in (val device-db) [:objects :8 device-id])]
+    (-> (filter (where filter-properties) [current-properties])
+        (empty?)
+        (not))))
+
+
+(defn filter-by-properties
+  "Remove any device for which the properties are equal to those given
+  in filter-property-coll." [devices-db filter-property-coll]
+  (into {} ;we iterate over a map and want to return a map
+        (remove (fn [device-db]
+                  (some #(property-match? device-db %) filter-property-coll))
+                devices-db)))
+
+;; example of a property map:
+
+ ;; {:Vendor-identifier 260,
+ ;;  :Description "server",
+ ;;  :Device-type nil,
+ ;;  :Vendor-name "BACnet Stack at SourceForge",
+ ;;  :Object-name "SimpleServer",
+ ;;  :Model-name "GNU"}
+
+;; ================================================================
+
+
 (defn get-broadcast-address
   "Return the broadcast address as a string"
   []
@@ -190,19 +268,6 @@ java method `terminate'."
           (finally (.terminate local-device))))))
 
 
-;; (defmacro with-local-device
-;;   "Initialize a local BACnet device, execute body and terminate the
-;;   local device. Insure that the local device won't survive beyond its
-;;   utility and lock a port. Should be used with new-local-device."
-;;   [[device-binding device] & body]
-;;   (let [var (gensym)] ;create a unique error handler
-;;   `(let [~device-binding ~device]
-;;      (.initialize ~device-binding)
-;;      (try ~@body
-;;           (catch Exception ~var (str "error: " (.getMessage ~var)))
-;;           (finally (.terminate ~device-binding))))))
-
-
 (defn bac4j-to-clj
   "Check the class of the argument and transform it as needed. For
   example, #<CharacterString ...> will become a simple string, and
@@ -234,17 +299,17 @@ java method `terminate'."
               (= object-class com.serotonin.bacnet4j.type.enumerated.BinaryPV))
           (.intValue bac4j-object)
           
-          true nil)))
+          :else nil)))
 
 (defn get-remote-devices-and-info
   "Given a local device, sends a WhoIs. For every device discovered,
   get its extended information. Return the remote devices as a list."
-  [& {:keys [min max dest-port] :or {dest-port 47808}}]
+  [& {:keys [min-range max-range dest-port] :or {dest-port 47808}}]
   (.sendBroadcast local-device
                   dest-port (if (and min max)
                               (WhoIsRequest.
-                               (UnsignedInteger. min)
-                               (UnsignedInteger. max))
+                               (UnsignedInteger. min-range)
+                               (UnsignedInteger. max-range))
                               (WhoIsRequest.)))
   (Thread/sleep 500)
   (let [rds (-> local-device (.getRemoteDevices))]
@@ -413,37 +478,46 @@ java method `terminate'."
                                            {:trend-log-data
                                             (get-trend-log-data remote-device %)}))}}] results)
                  seq-object-identifiers))))
-  
-  
+
+
+
+
+
 (defn remote-devices-object-and-properties
   "Return a map of object and properties for the remote devices."
-  [remote-devices & {:keys [get-trend-log get-backup password]}]
-  (let [rds remote-devices
+  [remote-devices & {:keys [get-trend-log get-backup password id-to-keep id-to-remove filter-properties]}]
+  (let [rds (remove-or-keep-devices-by-id remote-devices
+                                          :id-to-keep id-to-keep
+                                          :id-to-remove id-to-remove)
         seq-oids (map #(get-object-identifiers %) rds)] ;delay needed?
     {:data
-     (into {} (map (fn [rd oids]
-                     (let [prop-refs (get-properties-references rd oids)
-                           objects (get-properties-values-for-remote-device
-                                    rd oids prop-refs :get-trend-log get-trend-log)
-                           address (.getAddress rd)
-                           results {:update (.toString (now))
-                                    :name (.getName rd)
-                                    :ip-address (.toIpString address)
-                                    :mac-address (.toString (.getMacAddress address))
-                                    :network-number (.intValue (.getNetworkNumber address))
-                                    :objects objects}]
-                       (hash-map (keyword (str (.getInstanceNumber rd)))
-                                 (if-let [backup (and get-backup
-                                                      (get-backup-and-encode rd password))]
-                                   (assoc results :backup-data backup)
-                                   results))))
-                   rds seq-oids))}))
+     (-> (into {}
+               (map (fn [rd oids]
+                      (let [prop-refs (get-properties-references rd oids)
+                            objects (get-properties-values-for-remote-device
+                                     rd oids prop-refs :get-trend-log get-trend-log)
+                            address (.getAddress rd)
+                            results {:update (.toString (now))
+                                     :name (.getName rd)
+                                     :ip-address (.toIpString address)
+                                     :mac-address (.toString (.getMacAddress address))
+                                     :network-number (.intValue (.getNetworkNumber address))
+                                     :objects objects}]
+                        (hash-map (keyword (str (.getInstanceNumber rd)))
+                                  (if-let [backup (and get-backup
+                                                       (get-backup-and-encode rd password))]
+                                    (assoc results :backup-data backup)
+                                    results))))
+                    rds seq-oids))
+               (filter-by-properties filter-properties))
+               }))
 
 
 (defn bacnet-test []
   (with-local-device (new-local-device)
     (let [rds (get-remote-devices-and-info)]
-      (remote-devices-object-and-properties rds :get-trend-log false :get-backup true :password ""))))
+      (remote-devices-object-and-properties rds :get-trend-log false :get-backup true :password ""
+                                              :filter-properties [{:Model-name "GNa"}]))))
 
 (defn get-remote-devices-list
   "Mostly for development; return a list of remote devices ID"
