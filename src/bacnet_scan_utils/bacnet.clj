@@ -306,7 +306,7 @@ java method `terminate'."
   get its extended information. Return the remote devices as a list."
   [& {:keys [min-range max-range dest-port] :or {dest-port 47808}}]
   (.sendBroadcast local-device
-                  dest-port (if (and min max)
+                  dest-port (if (and min-range max-range)
                               (WhoIsRequest.
                                (UnsignedInteger. min-range)
                                (UnsignedInteger. max-range))
