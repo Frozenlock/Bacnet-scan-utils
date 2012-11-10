@@ -120,6 +120,8 @@
             PropertyIdentifier/fileAccessMethod
             PropertyIdentifier/fileSize
             PropertyIdentifier/fileType]
+       :12 (concat normal-variable-pids [PropertyIdentifier/manipulatedVariableReference
+                                         PropertyIdentifier/controlledVariableReference PropertyIdentifier/setpointReference ])
        :13 normal-binary-IO-pids ;multi-state-input
        :14 normal-binary-IO-pids ;multi-state-output   
        :19 normal-variable-pids ;multi-state-value    
@@ -301,16 +303,23 @@ java method `terminate'."
           
           :else nil)))
 
-(defn get-remote-devices-and-info
-  "Given a local device, sends a WhoIs. For every device discovered,
-  get its extended information. Return the remote devices as a list."
-  [& {:keys [min-range max-range dest-port] :or {dest-port 47808}}]
+(defn find-remote-devices
+  [&[{:keys [min-range max-range dest-port] :or {dest-port 47808}}]]
   (.sendBroadcast local-device
                   dest-port (if (and min-range max-range)
                               (WhoIsRequest.
                                (UnsignedInteger. min-range)
                                (UnsignedInteger. max-range))
                               (WhoIsRequest.)))
+  (Thread/sleep 700)) ;wait a while to get answers from the network
+  
+
+  
+(defn get-remote-devices-and-info
+  "Given a local device, sends a WhoIs. For every device discovered,
+  get its extended information. Return the remote devices as a list."
+  [& {:keys [min-range max-range dest-port] :as args}]
+  (find-remote-devices args)
   (Thread/sleep 500)
   (let [rds (-> local-device (.getRemoteDevices))]
     (doseq [remote-device rds]
