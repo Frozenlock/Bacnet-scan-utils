@@ -250,7 +250,7 @@ java method `terminate'."
   (let [ld (LocalDevice. device-id broadcast-address local-address)]
     ;(-> ld (.setMaxReadMultipleReferencesNonsegmented 14))
     (.setPort ld port)
-    (.setTimeout 20000) ;; default 6000 sometimes caused bad errors...
+    (.setTimeout ld 20000) ;; default 6000 sometimes caused bad errors...
     ld))
 
 (def ^:dynamic local-device (new-local-device))
