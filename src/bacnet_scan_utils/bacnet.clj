@@ -320,7 +320,6 @@ java method `terminate'."
   get its extended information. Return the remote devices as a list."
   [& {:keys [min-range max-range dest-port] :as args}]
   (find-remote-devices args)
-  (Thread/sleep 500)
   (let [rds (-> local-device (.getRemoteDevices))]
     (doseq [remote-device rds]
       (-> local-device (.getExtendedDeviceInformation remote-device)))
@@ -502,21 +501,25 @@ java method `terminate'."
     {:data
      (-> (into {}
                (map (fn [rd oids]
-                      (let [prop-refs (get-properties-references rd oids)
-                            objects (get-properties-values-for-remote-device
-                                     rd oids prop-refs :get-trend-log get-trend-log)
-                            address (.getAddress rd)
-                            results {:update (.toString (now))
-                                     :name (.getName rd)
-                                     :ip-address (.toIpString address)
-                                     :mac-address (.toString (.getMacAddress address))
-                                     :network-number (.intValue (.getNetworkNumber address))
-                                     :objects objects}]
-                        (hash-map (keyword (str (.getInstanceNumber rd)))
-                                  (if-let [backup (and get-backup
-                                                       (get-backup-and-encode rd password))]
-                                    (assoc results :backup-data backup)
-                                    results))))
+                      (try
+                        (let [prop-refs (get-properties-references rd oids)
+                              objects (get-properties-values-for-remote-device
+                                       rd oids prop-refs :get-trend-log get-trend-log)
+                              address (.getAddress rd)
+                              results {:update (.toString (now))
+                                       :name (.getName rd)
+                                       :ip-address (.toIpString address)
+                                       :mac-address (.toString (.getMacAddress address))
+                                       :network-number (.intValue (.getNetworkNumber address))
+                                       :objects objects}]
+                          (hash-map (keyword (str (.getInstanceNumber rd)))
+                                    (if-let [backup (and get-backup
+                                                         (get-backup-and-encode rd password))]
+                                      (assoc results :backup-data backup)
+                                      results)))
+                        (catch Exception e (println
+                                            (str "error: " (.getMessage e) "\n Device-id: "
+                                                 (.getInstanceNumber rd))))))
                     rds seq-oids))
                (filter-by-properties filter-properties))
                }))
