@@ -1,4 +1,4 @@
-(defproject bacnet-scan-utils "1.1.0"
+(defproject bacnet-scan-utils "1.1.1"
   :description "Small library to scan a BACnet network."
   :dependencies [[org.clojure/clojure "1.3.0"]
                  [org.clojars.frozenlock/bacnet4j "1.2.4"]
